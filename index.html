@@ -21,19 +21,51 @@
     }
     #header {
       position: absolute;
-      top: 20px;
+      top: 12px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 100;
+      width: min(95vw, 960px);
       display: flex;
       flex-direction: column;
-      align-items: center;
-      gap: 8px;
+      align-items: stretch;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.14);
+      border: 1px solid rgba(255,255,255,0.2);
+      backdrop-filter: blur(6px);
     }
-    #score, #time {
-      font-size: 26px;
-      font-weight: bold;
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      width: 100%;
+    }
+    .stat-card {
+      font-size: 21px;
+      font-weight: 700;
       text-shadow: 0 0 10px rgba(0,0,0,0.3);
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 12px;
+      padding: 8px 10px;
+      white-space: nowrap;
+    }
+    #audio-controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 0;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+    }
+    .audio-btn {
+      margin-top: 0;
+      padding: 10px 14px;
+      font-size: 14px;
+      border-radius: 999px;
+      box-shadow: 0 3px 12px rgba(255, 77, 148, 0.35);
     }
     .heart {
       position: absolute;
@@ -53,12 +85,9 @@
       transform: scale(1.3) rotate(-12deg);
     }
     #combo-indicator {
-      position: absolute;
-      top: 110px;
-      left: 50%;
-      transform: translateX(-50%);
+      position: static;
       z-index: 150;
-      font-size: 28px;
+      font-size: 22px;
       font-weight: bold;
       color: #fff7ad;
       text-shadow: 0 0 14px rgba(255, 200, 0, 0.95);
@@ -67,15 +96,19 @@
       pointer-events: none;
     }
     #start-screen, #end-screen {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
       background: rgba(0,0,0,0.75);
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      z-index: 200;
+      z-index: 1200;
+      padding: 20px 14px;
+      overflow-y: auto;
     }
     button {
       margin-top: 25px;
@@ -106,14 +139,47 @@
       margin-top: 14px;
       color: #ffe6f0;
     }
+    #end-message {
+      max-width: 90%;
+      min-height: 96px;
+      color: #fff;
+      text-shadow: 0 0 10px rgba(0,0,0,0.35);
+    }
+    #end-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
+      margin-top: 16px;
+    }
+    #end-actions button {
+      margin-top: 0;
+      font-size: 18px;
+      padding: 12px 20px;
+    }
+    @media (max-width: 700px) {
+      .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .stat-card { font-size: 17px; }
+      .audio-btn { font-size: 13px; padding: 7px 12px; }
+      #combo-indicator { font-size: 18px; }
+    }
   </style>
 </head>
 <body>
   <div id="game-container">
     <div id="header">
-      <div id="score">Puntos: <span id="points">0</span></div>
-      <div id="score">Corazones: <span id="caught">0</span>/<span id="target">40</span></div>
-      <div id="time">Tiempo: <span id="timer">60</span>s</div>
+      <div class="stats-grid">
+        <div class="stat-card">Puntos: <span id="points">0</span></div>
+        <div class="stat-card">Corazones: <span id="caught">0</span>/<span id="target">40</span></div>
+        <div class="stat-card">Tiempo: <span id="timer">30</span>s</div>
+        <div class="stat-card">Record: <span id="best-points">0</span> pts | <span id="best-hearts">0</span></div>
+      </div>
+      <div id="audio-controls">
+        <button class="audio-btn" onclick="document.getElementById('music-file').click()">Cargar nuestra musica</button>
+        <button class="audio-btn" id="music-toggle" onclick="toggleMusic()">Musica: Off</button>
+      </div>
+      <input id="music-file" type="file" accept="audio/*" onchange="loadMusicFile(event)" style="display:none;">
       <div id="combo-indicator">BESO x2 ACTIVADO</div>
     </div>
 
@@ -122,6 +188,7 @@
       <h1>❤️ Maribel ❤️</h1>
       <p>Mi amor, ¿puedes atrapar todos mis corazones antes de que se acabe el tiempo?</p>
       <p class="dedication">Hecho con todo mi amor por Brayan</p>
+      <p class="small-note">Tip: toca "Cargar nuestra musica" y elige "Amor - Emmanuel Cortez" desde tu celular/PC 💖</p>
       <button onclick="startGame()">¡Empezar el juego, mi vida!</button>
     </div>
 
@@ -132,15 +199,18 @@
       <p id="secret-message" class="small-note" style="display: none;"></p>
       <p id="excuse-text" class="small-note" style="display: none;"></p>
       <p class="dedication">Te amo Maribel, eres lo mejor de mi vida ❤️</p>
-      <button id="restart-btn" onclick="restartGame()">Jugar de nuevo</button>
-      <button id="excuse-btn" onclick="showExcuse()" style="display: none;">Perdóname amor, me puse nerviosa 😅</button>
-      <button id="hug-btn" onclick="giveHug()" style="display: none;">Dar abrazo 🤗 (0/3)</button>
+      <div id="end-actions">
+        <button id="restart-btn" onclick="restartGame()">Jugar de nuevo</button>
+        <button id="excuse-btn" onclick="showExcuse()" style="display: none;">Perdóname amor, me puse nerviosa 😅</button>
+        <button id="hug-btn" onclick="giveHug()" style="display: none;">Dar abrazo 🤗 (0/3)</button>
+      </div>
     </div>
   </div>
 
   <script>
     let score = 0;
-    let timeLeft = 60;
+    const gameDuration = 30;
+    let timeLeft = gameDuration;
     let timerInterval;
     let heartInterval;
     let jealousyInterval;
@@ -152,6 +222,153 @@
     let hugCount = 0;
     let needsHugs = false;
     const targetHearts = 40;
+    const bestScoreKey = 'amor-game-best-score-v1';
+    const bestHeartsKey = 'amor-game-best-hearts-v1';
+    let bestScore = 0;
+    let bestHearts = 0;
+    try {
+      bestScore = Number(localStorage.getItem(bestScoreKey) || 0);
+      bestHearts = Number(localStorage.getItem(bestHeartsKey) || 0);
+    } catch (_) {
+      bestScore = 0;
+      bestHearts = 0;
+    }
+    let audioCtx;
+    let musicEnabled = true;
+    let currentMusicObjectUrl = null;
+    const bgMusic = new Audio('amor.mp3');
+    bgMusic.loop = true;
+    bgMusic.preload = 'auto';
+    bgMusic.volume = 0.65;
+
+    function updateMusicToggleLabel() {
+      const toggle = document.getElementById('music-toggle');
+      if (!toggle) return;
+      toggle.textContent = musicEnabled ? 'Musica: On' : 'Musica: Off';
+    }
+
+    bgMusic.addEventListener('error', () => {
+      musicEnabled = false;
+      const toggle = document.getElementById('music-toggle');
+      if (toggle) toggle.textContent = 'Musica: sin archivo';
+    });
+
+    function updateRecordDisplay() {
+      document.getElementById('best-points').textContent = bestScore;
+      document.getElementById('best-hearts').textContent = bestHearts;
+    }
+
+    function saveRecordIfNeeded() {
+      let changed = false;
+
+      try {
+        if (score > bestScore) {
+          bestScore = score;
+          localStorage.setItem(bestScoreKey, String(bestScore));
+          changed = true;
+        }
+
+        if (heartsCaught > bestHearts) {
+          bestHearts = heartsCaught;
+          localStorage.setItem(bestHeartsKey, String(bestHearts));
+          changed = true;
+        }
+      } catch (_) {
+        // Si localStorage no esta disponible, el juego sigue sin bloquearse.
+      }
+
+      if (changed) updateRecordDisplay();
+    }
+
+    function ensureAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playTone(freq, duration = 0.12, type = 'sine', volume = 0.08) {
+      if (!isPlaying) return;
+      ensureAudioContext();
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = type;
+      osc.frequency.value = freq;
+
+      gain.gain.value = 0.0001;
+      gain.gain.exponentialRampToValueAtTime(volume, audioCtx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start();
+      osc.stop(audioCtx.currentTime + duration + 0.02);
+    }
+
+    function playGoodSound() {
+      playTone(760, 0.09, 'triangle', 0.09);
+      setTimeout(() => playTone(980, 0.12, 'triangle', 0.08), 70);
+    }
+
+    function playBadSound() {
+      playTone(210, 0.16, 'sawtooth', 0.1);
+    }
+
+    function playComboSound() {
+      playTone(660, 0.07, 'sine', 0.08);
+      setTimeout(() => playTone(880, 0.08, 'sine', 0.08), 70);
+      setTimeout(() => playTone(1180, 0.1, 'sine', 0.09), 150);
+    }
+
+    function playJealousSound() {
+      playTone(300, 0.08, 'square', 0.09);
+      setTimeout(() => playTone(240, 0.12, 'square', 0.08), 90);
+    }
+
+    function loadMusicFile(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      if (currentMusicObjectUrl) {
+        URL.revokeObjectURL(currentMusicObjectUrl);
+      }
+
+      currentMusicObjectUrl = URL.createObjectURL(file);
+      bgMusic.src = currentMusicObjectUrl;
+      musicEnabled = true;
+      updateMusicToggleLabel();
+
+      if (isPlaying) {
+        bgMusic.currentTime = 0;
+        bgMusic.play().catch(() => {});
+      }
+    }
+
+    function toggleMusic() {
+      if (!bgMusic.src) {
+        const toggle = document.getElementById('music-toggle');
+        toggle.textContent = 'Primero carga la cancion';
+        setTimeout(() => {
+          updateMusicToggleLabel();
+        }, 1400);
+        return;
+      }
+
+      musicEnabled = !musicEnabled;
+      updateMusicToggleLabel();
+
+      if (musicEnabled && isPlaying) {
+        bgMusic.play().catch(() => {});
+      } else {
+        bgMusic.pause();
+      }
+    }
 
     function spawnFloatingMessage(x, y, text, shadowColor = '#ff4d94') {
       const msg = document.createElement('div');
@@ -179,6 +396,7 @@
     function activateKissCombo() {
       comboActive = true;
       clearTimeout(comboTimeout);
+      playComboSound();
 
       const combo = document.getElementById('combo-indicator');
       combo.style.opacity = '1';
@@ -215,6 +433,7 @@
         timeLeft = Math.max(timeLeft - 6, 0);
         document.getElementById('timer').textContent = timeLeft;
         streak = 0;
+        playJealousSound();
 
         spawnFloatingMessage(jealous.style.left, '35%', '-6s por celos 😵', '#5ad1ff');
         jealous.remove();
@@ -291,11 +510,13 @@
         if (heartData.good) {
           heartsCaught++;
           streak++;
+          playGoodSound();
           if (streak === 5) {
             activateKissCombo();
           }
         } else {
           streak = 0;
+          playBadSound();
         }
 
         document.getElementById('points').textContent = score;
@@ -334,6 +555,7 @@
     function startTimer() {
       timerInterval = setInterval(() => {
         timeLeft--;
+        if (timeLeft < 0) timeLeft = 0;
         document.getElementById('timer').textContent = timeLeft;
 
         if (timeLeft <= 10) {
@@ -341,16 +563,49 @@
         }
 
         if (timeLeft <= 0) {
+          document.getElementById('timer').textContent = '0';
           endGame();
+          return;
         }
       }, 1000);
     }
 
+    function showEndFallback(titleText, messageHtml) {
+      const endScreen = document.getElementById('end-screen');
+      const endTitle = document.getElementById('end-title');
+      const endMessage = document.getElementById('end-message');
+      const secretMessage = document.getElementById('secret-message');
+      const excuseText = document.getElementById('excuse-text');
+      const excuseBtn = document.getElementById('excuse-btn');
+      const restartBtn = document.getElementById('restart-btn');
+      const hugBtn = document.getElementById('hug-btn');
+
+      if (endTitle) endTitle.textContent = titleText;
+      if (endMessage) endMessage.innerHTML = messageHtml;
+      if (secretMessage) {
+        secretMessage.style.display = 'none';
+        secretMessage.textContent = '';
+      }
+      if (excuseText) {
+        excuseText.style.display = 'none';
+        excuseText.textContent = '';
+      }
+      if (excuseBtn) excuseBtn.style.display = 'none';
+      if (hugBtn) hugBtn.style.display = 'none';
+      if (restartBtn) restartBtn.style.display = 'inline-block';
+
+      if (endScreen) {
+        endScreen.style.display = 'flex';
+        endScreen.style.zIndex = '1200';
+      }
+    }
+
     function startGame() {
       document.getElementById('start-screen').style.display = 'none';
+      ensureAudioContext();
       
       score = 0;
-      timeLeft = 60;
+      timeLeft = gameDuration;
       heartsCaught = 0;
       streak = 0;
       comboActive = false;
@@ -361,14 +616,20 @@
       document.getElementById('points').textContent = '0';
       document.getElementById('caught').textContent = '0';
       document.getElementById('target').textContent = targetHearts;
-      document.getElementById('timer').textContent = '60';
+      document.getElementById('timer').textContent = String(gameDuration);
       document.getElementById('timer').style.color = 'white';
       document.getElementById('combo-indicator').style.opacity = '0';
       document.getElementById('secret-message').style.display = 'none';
       document.getElementById('excuse-text').style.display = 'none';
+      document.getElementById('excuse-text').textContent = '';
       document.getElementById('excuse-btn').style.display = 'none';
       document.getElementById('hug-btn').style.display = 'none';
       document.getElementById('restart-btn').style.display = 'inline-block';
+
+      if (musicEnabled && bgMusic.src) {
+        bgMusic.currentTime = 0;
+        bgMusic.play().catch(() => {});
+      }
 
       // Modo dificil: corazones rapidos y menos "limpios"
       heartInterval = setInterval(() => {
@@ -387,51 +648,77 @@
       isPlaying = false;
       clearInterval(timerInterval);
       clearInterval(heartInterval);
-      clearInterval(jealousInterval);
+      clearInterval(jealousyInterval);
       clearTimeout(comboTimeout);
+      bgMusic.pause();
 
-      // Limpiar corazones restantes
-      document.querySelectorAll('.heart').forEach(h => h.remove());
+      try {
+        saveRecordIfNeeded();
 
-      const endScreen = document.getElementById('end-screen');
-      const endTitle = document.getElementById('end-title');
-      const endMessage = document.getElementById('end-message');
-      const secretMessage = document.getElementById('secret-message');
-      const excuseBtn = document.getElementById('excuse-btn');
-      const restartBtn = document.getElementById('restart-btn');
-      const hugBtn = document.getElementById('hug-btn');
-      const heartsLeft = Math.max(targetHearts - heartsCaught, 0);
+        // Limpiar corazones restantes
+        document.querySelectorAll('.heart').forEach(h => h.remove());
 
-      if (heartsCaught >= targetHearts + 20) {
-        endTitle.textContent = "¡Me quieres DEMASIADO! 😍";
-        endMessage.innerHTML = `Atrapaste <strong>${heartsCaught}</strong> corazones (meta: ${targetHearts})<br><strong>${score}</strong> puntos<br>Confirmado: soy tu persona favorita`;
-        secretMessage.innerHTML = '🎁 Premio secreto desbloqueado: tienes un deseo.';
-        secretMessage.style.display = 'block';
-      } else if (heartsCaught >= targetHearts) {
-        endTitle.textContent = "¡Sí me quieres mucho! ❤️";
-        endMessage.innerHTML = `Atrapaste <strong>${heartsCaught}</strong> corazones y cumpliste la meta<br><strong>${score}</strong> puntos<br>Nivel amor desbloqueado`;
-      } else if (heartsCaught >= targetHearts * 0.7) {
-        endTitle.textContent = "Me quieres... pero te distraes 😅";
-        endMessage.innerHTML = `Te faltaron <strong>${heartsLeft}</strong> corazones para la meta de ${targetHearts}<br><strong>${score}</strong> puntos<br>Te doy otra oportunidad, mi vida`;
-        excuseBtn.style.display = 'inline-block';
-      } else {
-        endTitle.textContent = "Mmm... no me quieres mucho 😭";
-        endMessage.innerHTML = `Solo atrapaste <strong>${heartsCaught}</strong> de ${targetHearts} corazones<br><strong>${score}</strong> puntos<br>Necesito mimos y revancha ya`;
-        excuseBtn.style.display = 'inline-block';
+        const endScreen = document.getElementById('end-screen');
+        const endTitle = document.getElementById('end-title');
+        const endMessage = document.getElementById('end-message');
+        const secretMessage = document.getElementById('secret-message');
+        const excuseBtn = document.getElementById('excuse-btn');
+        const excuseText = document.getElementById('excuse-text');
+        const restartBtn = document.getElementById('restart-btn');
+        const hugBtn = document.getElementById('hug-btn');
+        const heartsLeft = Math.max(targetHearts - heartsCaught, 0);
 
-        if (heartsCaught < targetHearts * 0.5) {
-          needsHugs = true;
-          restartBtn.style.display = 'none';
-          hugBtn.style.display = 'inline-block';
-          hugBtn.textContent = 'Dar abrazo 🤗 (0/3)';
+        // Estado base del final para asegurar que SIEMPRE se vea contenido y se pueda reiniciar.
+        endTitle.textContent = 'Resultado del juego ❤️';
+        endMessage.innerHTML = `Conseguiste <strong>${score}</strong> puntos y <strong>${heartsCaught}</strong> corazones`;
+        secretMessage.style.display = 'none';
+        secretMessage.innerHTML = '';
+        excuseText.style.display = 'none';
+        excuseText.textContent = '';
+        excuseBtn.style.display = 'none';
+        restartBtn.style.display = 'inline-block';
+        hugBtn.style.display = 'none';
+        needsHugs = false;
+        hugCount = 0;
+
+        endTitle.style.display = 'block';
+        endMessage.style.display = 'block';
+
+        if (heartsCaught >= targetHearts + 20) {
+          endTitle.textContent = "¡Me quieres DEMASIADO! 😍";
+          endMessage.innerHTML = `Atrapaste <strong>${heartsCaught}</strong> corazones (meta: ${targetHearts})<br><strong>${score}</strong> puntos<br>Confirmado: soy tu persona favorita`;
+          secretMessage.innerHTML = '🎁 Premio secreto desbloqueado: tienes un deseo.';
+          secretMessage.style.display = 'block';
+        } else if (heartsCaught >= targetHearts) {
+          endTitle.textContent = "¡Sí me quieres mucho! ❤️";
+          endMessage.innerHTML = `Atrapaste <strong>${heartsCaught}</strong> corazones y cumpliste la meta<br><strong>${score}</strong> puntos<br>Nivel amor desbloqueado`;
+        } else if (heartsCaught >= targetHearts * 0.7) {
+          endTitle.textContent = "Me quieres... pero te distraes 😅";
+          endMessage.innerHTML = `Te faltaron <strong>${heartsLeft}</strong> corazones para la meta de ${targetHearts}<br><strong>${score}</strong> puntos<br>Te doy otra oportunidad, mi vida`;
+          excuseBtn.style.display = 'inline-block';
+        } else {
+          endTitle.textContent = "Mmm... no me quieres mucho 😭";
+          endMessage.innerHTML = `Solo atrapaste <strong>${heartsCaught}</strong> de ${targetHearts} corazones<br><strong>${score}</strong> puntos<br>Necesito mimos y revancha ya`;
+          excuseBtn.style.display = 'inline-block';
+
+          if (heartsCaught < targetHearts * 0.5) {
+            hugBtn.style.display = 'inline-block';
+            hugBtn.textContent = 'Dar abrazo 🤗 (0/3)';
+          }
         }
-      }
 
-      endScreen.style.display = 'flex';
+        endScreen.style.display = 'flex';
+        endScreen.style.zIndex = '1200';
+      } catch (error) {
+        console.error('Fallo al mostrar final:', error);
+        showEndFallback(
+          'Fin del juego ❤️',
+          `Conseguiste <strong>${score}</strong> puntos y <strong>${heartsCaught}</strong> corazones.<br>Pulsa "Jugar de nuevo" para revancha.`
+        );
+      }
     }
 
     function restartGame() {
-      if (needsHugs && hugCount < 3) return;
       document.getElementById('end-screen').style.display = 'none';
       startGame();
     }
@@ -444,6 +731,8 @@
     });
 
     console.log("%c❤️ Juego dedicado a Maribel por Brayan ❤️", "color:#ff4d94; font-size:18px");
+    updateRecordDisplay();
+    updateMusicToggleLabel();
   </script>
 </body>
 </html>
